@@ -364,6 +364,7 @@
 <div id="buttonsContainer" class="draggable flex flex-col items-center justify-center text-center" style="top: 90%; left: 50%; transform: translate(-50%, -50%);">
 <div class="mt-8 flex flex-col items-center gap-6">
 <button class="btn btn-primary" id="mainStartBtn" style="padding: 1.5rem 4rem; font-size: 1.5rem; border-radius: 99px; box-shadow: rgba(0, 229, 255, 0.4) 0px 0px 30px;">START TIMER</button>
+<button class="btn btn-ghost hidden" id="mainPauseBtn" style="border-radius: 99px; font-size: 0.75rem; margin-bottom: 0.5rem;">PAUSE TIMER</button>
 <button class="btn btn-ghost hidden" id="mainResetBtn" style="border-radius: 99px; font-size: 0.75rem;">RESET TIMER</button>
 </div>
 <div class="resize-handle"></div>
@@ -375,6 +376,10 @@
 <svg fill="none" height="24" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
 </button>
 <div class="flex items-center gap-4" style="pointer-events: auto;">
+<button class="neon-toggle-btn" id="mainToggleScreensaverBtn" style="margin-right: 1rem;">
+<svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16"><rect height="14" rx="2" ry="2" width="20" x="2" y="3"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg>
+<span>Toggle Screensaver</span>
+</button>
 <button class="neon-toggle-btn" id="quickClaimBtn" style="">
 <svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
 <span class="" style="">Mark Claimed</span>
@@ -490,6 +495,7 @@
             duration: parseInt(localStorage.getItem('duration')) || 45,
             timeLeft: parseInt(localStorage.getItem('timeLeft')) || 45,
             isRunning: localStorage.getItem('isRunning') === 'true',
+            isPaused: localStorage.getItem('isPaused') === 'true',
             isRevealed: localStorage.getItem('isRevealed') === 'true',
             isClaimed: localStorage.getItem('isClaimed') === 'true',
             bgImage: localStorage.getItem('bgImage') || '',
@@ -519,6 +525,7 @@ logoURL: localStorage.getItem('logoURL') || '',
             toggleAdmin: document.getElementById('toggleAdmin'),
             mainStartBtn: document.getElementById('mainStartBtn'),
             mainResetBtn: document.getElementById('mainResetBtn'),
+            mainPauseBtn: document.getElementById('mainPauseBtn'),
             celebrationOverlay: document.getElementById('celebrationOverlay'),
             timesUpOverlay: document.getElementById('timesUpOverlay'),
             closeTimesUp: document.getElementById('closeTimesUp'),
@@ -535,6 +542,7 @@ logoURL: localStorage.getItem('logoURL') || '',
             buttonsContainer: document.getElementById('buttonsContainer'),
 postTimerImg: document.getElementById('postTimerImg'),
             quickClaimBtn: document.getElementById('quickClaimBtn'),
+            mainToggleScreensaverBtn: document.getElementById('mainToggleScreensaverBtn'),
             inputWinner: document.getElementById('inputWinner'),
             inputPrize: document.getElementById('inputPrize'),
             inputLabel: document.getElementById('inputLabel'),
@@ -553,6 +561,7 @@ postTimerImg: document.getElementById('postTimerImg'),
             labelDisplay: document.getElementById('labelDisplay'),
             startBtn: document.getElementById('startBtn'),
             resetBtn: document.getElementById('resetBtn'),
+            pauseBtn: document.getElementById('pauseBtn'),
             adminClaimToggle: document.getElementById('adminClaimToggle'),
             adminFullscreenBtn: document.getElementById('adminFullscreenBtn'),
             mainFullscreenBtn: document.getElementById('mainFullscreenBtn'),
@@ -674,14 +683,18 @@ if (state.logoURL) {
             }
 
             // Visibility & Animations
-            if (state.isRunning) {
+                        if (state.isRunning) {
                 els.mainStartBtn.classList.add('hidden');
+                els.mainPauseBtn.classList.remove('hidden');
                 els.mainResetBtn.classList.remove('hidden');
+                els.mainPauseBtn.innerText = state.isPaused ? 'RESUME TIMER' : 'PAUSE TIMER';
+                els.pauseBtn.innerText = state.isPaused ? 'Resume' : 'Pause';
                 els.timer.style.opacity = '1';
                 els.winnerText.classList.remove('pulse-animation');
                 document.body.classList.remove('times-up-active');
             } else if (state.isRevealed) {
                 els.mainStartBtn.classList.add('hidden');
+                els.mainPauseBtn.classList.add('hidden');
                 els.mainResetBtn.classList.remove('hidden');
                 els.timer.style.opacity = '1';
                 els.winnerText.classList.add('pulse-animation');
@@ -690,6 +703,7 @@ if (state.logoURL) {
                 }
             } else {
                 els.mainStartBtn.classList.remove('hidden');
+                els.mainPauseBtn.classList.add('hidden');
                 els.mainResetBtn.classList.add('hidden');
                 els.timer.style.opacity = '0.6';
                 els.winnerText.classList.remove('pulse-animation');
@@ -730,6 +744,7 @@ if (state.logoURL) {
         function startTimer() {
             if (state.isRunning) return;
             state.isRunning = true;
+            state.isPaused = false;
             state.isRevealed = false;
             state.isClaimed = false;
             state.overlayManuallyClosed = false;
@@ -738,12 +753,14 @@ if (state.logoURL) {
             saveState();
             
             timerInterval = setInterval(() => {
-                if (state.timeLeft > 0) {
-                    state.timeLeft--;
-                    localStorage.setItem('timeLeft', state.timeLeft);
-                    updateUI();
-                } else {
-                    completeTimer();
+                if (!state.isPaused) {
+                    if (state.timeLeft > 0) {
+                        state.timeLeft--;
+                        localStorage.setItem('timeLeft', state.timeLeft);
+                        updateUI();
+                    } else {
+                        completeTimer();
+                    }
                 }
             }, 1000);
         }
@@ -751,6 +768,7 @@ if (state.logoURL) {
         function completeTimer() {
             clearInterval(timerInterval);
             state.isRunning = false;
+            state.isPaused = false;
             state.isRevealed = true;
             saveState();
 
@@ -764,10 +782,17 @@ if (state.logoURL) {
             }
         }
 
+        function pauseTimer() {
+            if (!state.isRunning) return;
+            state.isPaused = !state.isPaused;
+            saveState();
+        }
+
         function resetTimer() {
             clearInterval(timerInterval);
             clearTimeout(overlayTimeout);
             state.isRunning = false;
+            state.isPaused = false;
             state.isRevealed = false;
             state.isClaimed = false;
             state.overlayManuallyClosed = false;
@@ -824,7 +849,7 @@ if (state.logoURL) {
                     // Standard keys check to prevent bad data
                     const validKeys = [
                         'winnerId', 'prizeText', 'duration', 'timeLeft', 
-                        'isRunning', 'isRevealed', 'isClaimed', 'bgImage', 
+                        'isRunning', 'isPaused', 'isRevealed', 'isClaimed', 'bgImage',
                         'bgColor', 'logoURL', 'labelType', 'colorWinner', 
                         'colorTimer', 'overlayDuration', 'postTimerImg', 'screensaverImage', 'layoutState', 'isScreensaverActive'
                     ];
@@ -851,17 +876,32 @@ if (state.logoURL) {
         // --- Live Input Listeners for Auto-Save ---
         
         // --- Screensaver & Design Mode ---
+
+        function toggleScreensaverFullscreen(activate) {
+            if (activate) {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(e => console.error(e));
+                }
+            } else {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(e => console.error(e));
+                }
+            }
+        }
+
         let isDesignMode = false;
 
 
         els.toggleScreensaverBtn.addEventListener('click', () => {
             state.isScreensaverActive = !state.isScreensaverActive;
             saveState();
+            toggleScreensaverFullscreen(state.isScreensaverActive);
         });
 
         els.screensaverOverlay.addEventListener('click', () => {
             state.isScreensaverActive = false;
             saveState();
+            toggleScreensaverFullscreen(false);
         });
 
 
@@ -1029,9 +1069,16 @@ els.inputWinner.addEventListener('input', (e) => { state.winnerId = e.target.val
 
         els.mainStartBtn.addEventListener('click', startTimer);
         els.mainResetBtn.addEventListener('click', resetTimer);
+        els.mainPauseBtn.addEventListener('click', pauseTimer);
         els.quickClaimBtn.addEventListener('click', toggleClaim);
+        els.mainToggleScreensaverBtn.addEventListener('click', () => {
+            state.isScreensaverActive = !state.isScreensaverActive;
+            saveState();
+            toggleScreensaverFullscreen(state.isScreensaverActive);
+        });
         els.startBtn.addEventListener('click', startTimer);
         els.resetBtn.addEventListener('click', resetTimer);
+        els.pauseBtn.addEventListener('click', pauseTimer);
         els.adminClaimToggle.addEventListener('click', toggleClaim);
         els.adminFullscreenBtn.addEventListener('click', toggleFullscreen);
         els.mainFullscreenBtn.addEventListener('click', toggleFullscreen);
@@ -1050,7 +1097,7 @@ els.inputWinner.addEventListener('input', (e) => { state.winnerId = e.target.val
         window.addEventListener('storage', (e) => {
             const keysToSync = [
                 'winnerId', 'voltage_prize', 'duration', 'timeLeft', 
-                'isRunning', 'isRevealed', 'isClaimed', 'bgImage', 
+                'isRunning', 'isPaused', 'isRevealed', 'isClaimed', 'bgImage',
                 'bgColor', 'logoURL', 'labelType', 'colorWinner', 
                 'colorTimer', 'overlayDuration', 'postTimerImg', 'screensaverImage', 'layoutState', 'isScreensaverActive'
             ];
@@ -1061,7 +1108,7 @@ els.inputWinner.addEventListener('input', (e) => { state.winnerId = e.target.val
                 
                 if (['duration', 'timeLeft', 'overlayDuration'].includes(e.key)) val = parseInt(val);
                 
-                if (['isRunning', 'isRevealed', 'isClaimed', 'isScreensaverActive'].includes(e.key)) val = val === 'true';
+                if (['isRunning', 'isPaused', 'isRevealed', 'isClaimed', 'isScreensaverActive'].includes(e.key)) val = val === 'true';
                 if (e.key === 'layoutState') val = JSON.parse(val);
 
                 
@@ -1073,7 +1120,8 @@ els.inputWinner.addEventListener('input', (e) => { state.winnerId = e.target.val
         // Initialize
         updateUI();
         if (state.isRunning) {
-            state.isRunning = false; // reset flag to trigger a clean start
+            state.isRunning = false;
+            state.isPaused = false; // reset flag to trigger a clean start
             startTimer();
         }
     </script>

@@ -876,17 +876,32 @@ if (state.logoURL) {
         // --- Live Input Listeners for Auto-Save ---
         
         // --- Screensaver & Design Mode ---
+
+        function toggleScreensaverFullscreen(activate) {
+            if (activate) {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(e => console.error(e));
+                }
+            } else {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(e => console.error(e));
+                }
+            }
+        }
+
         let isDesignMode = false;
 
 
         els.toggleScreensaverBtn.addEventListener('click', () => {
             state.isScreensaverActive = !state.isScreensaverActive;
             saveState();
+            toggleScreensaverFullscreen(state.isScreensaverActive);
         });
 
         els.screensaverOverlay.addEventListener('click', () => {
             state.isScreensaverActive = false;
             saveState();
+            toggleScreensaverFullscreen(false);
         });
 
 
@@ -1059,6 +1074,7 @@ els.inputWinner.addEventListener('input', (e) => { state.winnerId = e.target.val
         els.mainToggleScreensaverBtn.addEventListener('click', () => {
             state.isScreensaverActive = !state.isScreensaverActive;
             saveState();
+            toggleScreensaverFullscreen(state.isScreensaverActive);
         });
         els.startBtn.addEventListener('click', startTimer);
         els.resetBtn.addEventListener('click', resetTimer);
